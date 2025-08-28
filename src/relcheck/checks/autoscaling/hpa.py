@@ -9,6 +9,7 @@ class HpaNoMetricsCheck(BaseCheck):
     id = "HPA_NO_METRICS"
     title = "HPA present but metrics missing"
     category = "fault"
+    target_kind = "HorizontalPodAutoscaler"
 
     def run(self, resource: NamespaceResource) -> ReportInfo:
         kube: KubeContext | None = resource.kube_context

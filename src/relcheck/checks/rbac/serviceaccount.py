@@ -9,6 +9,7 @@ class OverprivilegedServiceAccountCheck(BaseCheck):
     id = "SA_OVERPRIVILEGED"
     title = "ServiceAccount bound to cluster-admin"
     category = "misconfig"
+    target_kind = "ServiceAccount"
 
     def run(self, resource: NamespaceResource) -> ReportInfo:
         kube: KubeContext | None = resource.kube_context

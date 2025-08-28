@@ -25,6 +25,7 @@ class PodCrashLoopBackOffCheck(BaseCheck):
     id = "POD_CRASHLOOP"
     title = "Pod is CrashLoopBackOff"
     category = "fault"
+    target_kind = "Pod"
 
     def run(self, resource: PodResource) -> ReportInfo:
         statuses = (resource.raw.get("status", {}) or {}).get("containerStatuses", [])
@@ -44,6 +45,7 @@ class PodImagePullBackOffCheck(BaseCheck):
     id = "POD_IMAGEPULL"
     title = "Pod has ImagePullBackOff"
     category = "fault"
+    target_kind = "Pod"
 
     def run(self, resource: PodResource) -> ReportInfo:
         statuses = (resource.raw.get("status", {}) or {}).get("containerStatuses", [])
@@ -63,6 +65,7 @@ class PodReadinessProbeFailCheck(BaseCheck):
     id = "POD_READINESS"
     title = "Readiness probe failing"
     category = "fault"
+    target_kind = "Pod"
 
     def run(self, resource: PodResource) -> ReportInfo:
         has_probe = any((c.get("readinessProbe") is not None) for c in resource.containers())
@@ -83,6 +86,7 @@ class PodLivenessProbeLoopCheck(BaseCheck):
     id = "POD_LIVENESS"
     title = "Liveness probe killing pod repeatedly"
     category = "fault"
+    target_kind = "Pod"
 
     def run(self, resource: PodResource) -> ReportInfo:
         has_probe = any((c.get("livenessProbe") is not None) for c in resource.containers())
@@ -103,6 +107,7 @@ class PodOOMKilledCheck(BaseCheck):
     id = "POD_OOMKILLED"
     title = "Container terminated OOMKilled"
     category = "fault"
+    target_kind = "Pod"
 
     def run(self, resource: PodResource) -> ReportInfo:
         statuses = (resource.raw.get("status", {}) or {}).get("containerStatuses", [])
@@ -125,6 +130,7 @@ class PodPendingUnschedulableCheck(BaseCheck):
     id = "POD_PENDING"
     title = "Pod Pending due to scheduling"
     category = "fault"
+    target_kind = "Pod"
 
     def run(self, resource: PodResource) -> ReportInfo:
         phase = (resource.raw.get("status", {}) or {}).get("phase")
@@ -146,6 +152,7 @@ class PodInitContainerFailedCheck(BaseCheck):
     id = "POD_INIT_FAILED"
     title = "InitContainer failed"
     category = "fault"
+    target_kind = "Pod"
 
     def run(self, resource: PodResource) -> ReportInfo:
         statuses = (resource.raw.get("status", {}) or {}).get("initContainerStatuses", [])
@@ -165,6 +172,7 @@ class PodRunAsRootCheck(BaseCheck):
     id = "POD_ROOT"
     title = "Pod running as root"
     category = "misconfig"
+    target_kind = "Pod"
 
     def run(self, resource: PodResource) -> ReportInfo:
         def is_root(sc: dict | None) -> bool:
@@ -189,6 +197,7 @@ class PodCpuThrottlingCheck(BaseCheck):
     id = "POD_CPU_THROTTLE"
     title = "CPU limit likely to cause throttling"
     category = "misconfig"
+    target_kind = "Pod"
 
     def run(self, resource: PodResource) -> ReportInfo:
         def parse_milli(cpu: str | None) -> int:

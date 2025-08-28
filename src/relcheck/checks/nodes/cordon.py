@@ -8,6 +8,7 @@ class NodeCordonedCheck(BaseCheck):
     id = "NODE_CORDONED"
     title = "Node is cordoned"
     category = "fault"
+    target_kind = "Node"
 
     def run(self, resource: NodeResource) -> ReportInfo:
         unschedulable = bool((resource.raw.get("spec", {}) or {}).get("unschedulable"))

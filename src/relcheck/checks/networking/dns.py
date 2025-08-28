@@ -9,6 +9,7 @@ class CoreDnsCrashLoopCheck(BaseCheck):
     id = "DNS_COREDNS_CRASH"
     title = "CoreDNS pods are crashing"
     category = "fault"
+    target_kind = "Namespace"
 
     def run(self, resource: NamespaceResource) -> ReportInfo:
         # Only meaningful for kube-system

@@ -9,6 +9,7 @@ class UnevenSchedulingCheck(BaseCheck):
     id = "UNEVENT_SCHED"
     title = "Pods unevenly scheduled across nodes"
     category = "misconfig"
+    target_kind = "Namespace"
 
     def run(self, resource: NamespaceResource) -> ReportInfo:
         kube: KubeContext | None = resource.kube_context

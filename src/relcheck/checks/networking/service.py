@@ -9,18 +9,31 @@ class ServiceSelectorCheck(BaseCheck):
     id = "SVC_SELECTOR"
     title = "Service should define a selector"
     category = "misconfig"
+    target_kind = "Service"
 
     def run(self, resource: ServiceResource) -> ReportInfo:
         selector = (resource.raw.get("spec", {}) or {}).get("selector")
         passed = bool(selector)
         details = "selector present" if passed else "service has no selector (headless or manual)"
-        return ReportInfo(resource_kind=resource.kind, resource_name=resource.name, namespace=resource.namespace, check_id=self.id, check_title=self.title, category=self.category, passed=passed, details=details, description="Services usually select pods via labels. Missing selector may be intentional for headless, otherwise traffic won't route. Docs: https://kubernetes.io/docs/concepts/services-networking/service/", probable_cause="spec.selector missing or mismatch with pod labels")
+        return ReportInfo(
+            resource_kind=resource.kind, 
+            resource_name=resource.name, 
+            namespace=resource.namespace, 
+            check_id=self.id, 
+            check_title=self.title, 
+            category=self.category, 
+            passed=passed, 
+            details=details, 
+            description="Services usually select pods via labels. Missing selector may be intentional for headless, otherwise traffic won't route. Docs: https://kubernetes.io/docs/concepts/services-networking/service/", 
+            probable_cause="spec.selector missing or mismatch with pod labels"
+        )
 
 
 class ServiceTargetPortMismatchCheck(BaseCheck):
     id = "SVC_PORT_MISMATCH"
     title = "Service targetPort does not match container port"
     category = "fault"
+    target_kind = "Service"
 
     def run(self, resource: ServiceResource) -> ReportInfo:
         spec = resource.raw.get("spec", {}) or {}
@@ -28,7 +41,18 @@ class ServiceTargetPortMismatchCheck(BaseCheck):
         ports = spec.get("ports") or []
 
         if not selector or not ports:
-            return ReportInfo(resource_kind=resource.kind, resource_name=resource.name, namespace=resource.namespace, check_id=self.id, check_title=self.title, category=self.category, passed=True, details="no selector or ports", description="", probable_cause="")
+            return ReportInfo(
+                resource_kind=resource.kind, 
+                resource_name=resource.name, 
+                namespace=resource.namespace, 
+                check_id=self.id, 
+                check_title=self.title, 
+                category=self.category, 
+                passed=True, 
+                details="no selector or ports", 
+                description="Service has no selector or ports to check", 
+                probable_cause="N/A - no ports or selector defined"
+            )
 
         kube: KubeContext | None = resource.kube_context
         mismatched = False
@@ -53,6 +77,17 @@ class ServiceTargetPortMismatchCheck(BaseCheck):
         except Exception:
             pass
 
-        return ReportInfo(resource_kind=resource.kind, resource_name=resource.name, namespace=resource.namespace, check_id=self.id, check_title=self.title, category=self.category, passed=not mismatched, details=detail or "ok", description="Service targetPort must match one of the selected pods' containerPort values. Docs: https://kubernetes.io/docs/concepts/services-networking/service/#exposing-pods-to-the-cluster", probable_cause="Service port maps to a container port that does not exist")
+        return ReportInfo(
+            resource_kind=resource.kind, 
+            resource_name=resource.name, 
+            namespace=resource.namespace, 
+            check_id=self.id, 
+            check_title=self.title, 
+            category=self.category, 
+            passed=not mismatched, 
+            details=detail or "ok", 
+            description="Service targetPort must match one of the selected pods' containerPort values. Docs: https://kubernetes.io/docs/concepts/services-networking/service/#exposing-pods-to-the-cluster", 
+            probable_cause="Service port maps to a container port that does not exist"
+        )
 
 
