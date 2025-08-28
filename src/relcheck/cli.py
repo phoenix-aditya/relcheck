@@ -16,75 +16,8 @@ from .checks.data.secret import SecretTypeCheck
 from .checks.data.pvc import PvcStorageClassCheck
 from .checks.cluster.node import NodeReadyCheck
 
-@click.group()
-@click.version_option(version="0.1.1", prog_name="relcheck")
-def main():
-    """relcheck - Kubernetes resource diagnostics and health checking tool.
-    
-    Run comprehensive checks against Kubernetes resources to identify common
-    misconfigurations and faults. Supports live cluster inspection via kubectl
-    configuration.
-    
-    EXAMPLES:
-        # Smart context-aware commands:
-        relcheck my-pod                    # Check pod 'my-pod' in current namespace
-        relcheck .                         # Check current namespace + all resources
-        relcheck production                # Check 'production' namespace
-        relcheck cluster                   # Check entire cluster
-        relcheck all                       # Check everything (cluster + deep scan)
-        
-        # Traditional explicit commands:
-        relcheck check-resource --resource-kind Pod --name my-pod --namespace default
-    """
-    pass
-
-@main.command()
-@click.argument("target", default=".")
-@click.option("--format", "format_", 
-              type=click.Choice(["table", "json"], case_sensitive=False), 
-              default="table",
-              help="Output format: table (default) or json")
-@click.option("--solve", 
-              is_flag=True, 
-              default=False, 
-              help="Enable MCP-based solution suggestions (experimental)")
-@click.option("--verbose", 
-              is_flag=True, 
-              default=False, 
-              help="Show all checks (passed and failed). Default: show only failed checks")
-@click.option("--deep", 
-              is_flag=True, 
-              default=False, 
-              help="Recursively check child resources (overrides context defaults)")
-@click.option("--kubeconfig", 
-              default=None, 
-              help="Path to kubeconfig file (default: ~/.kube/config)")
-@click.option("--context", "k8s_context", 
-              default=None, 
-              help="Kubernetes context to use (default: current context)")
-def check(target: str, format_: str, solve: bool, verbose: bool, deep: bool, kubeconfig: Optional[str], k8s_context: Optional[str]):
-    """Check Kubernetes resources with smart context awareness.
-    
-    TARGET can be:
-        my-pod          # Check specific pod in current namespace
-        .               # Check current namespace + all resources
-        *               # Check current namespace + all resources  
-        production      # Check 'production' namespace
-        cluster         # Check entire cluster
-        all             # Check everything (cluster + deep scan)
-        
-    EXAMPLES:
-        # Smart defaults:
-        relcheck my-pod                    # Check pod in current namespace
-        relcheck .                         # Check current namespace
-        relcheck production                # Check namespace
-        relcheck cluster                   # Check cluster
-        
-        # With options:
-        relcheck my-pod --verbose          # Show all checks
-        relcheck . --format json           # JSON output
-        relcheck cluster --deep            # Deep cluster scan
-    """
+def run_checks(target: str, format_: str, solve: bool, verbose: bool, deep: bool, kubeconfig: Optional[str], k8s_context: Optional[str]):
+    """Internal function to run checks based on target"""
     # Initialize Kubernetes context
     kube_ctx = KubeContext(kubeconfig=kubeconfig, context=k8s_context)
     context_analyzer = ContextAnalyzer(kube_ctx)
@@ -200,8 +133,71 @@ def check(target: str, format_: str, solve: bool, verbose: bool, deep: bool, kub
         click.echo(fmt_row(r))
     click.echo(draw_border("-"))
 
+@click.command()
+@click.version_option(version="0.1.1", prog_name="relcheck")
+@click.argument("target", default=".")
+@click.option("--format", "format_", 
+              type=click.Choice(["table", "json"], case_sensitive=False), 
+              default="table",
+              help="Output format: table (default) or json")
+@click.option("--solve", 
+              is_flag=True, 
+              default=False, 
+              help="Enable MCP-based solution suggestions (experimental)")
+@click.option("--verbose", 
+              is_flag=True, 
+              default=False, 
+              help="Show all checks (passed and failed). Default: show only failed checks")
+@click.option("--deep", 
+              is_flag=True, 
+              default=False, 
+              help="Recursively check child resources (overrides context defaults)")
+@click.option("--kubeconfig", 
+              default=None, 
+              help="Path to kubeconfig file (default: ~/.kube/config)")
+@click.option("--context", "k8s_context", 
+              default=None, 
+              help="Kubernetes context to use (default: current context)")
+def main(target: str, format_: str, solve: bool, verbose: bool, deep: bool, kubeconfig: Optional[str], k8s_context: Optional[str]):
+    """relcheck - Kubernetes resource diagnostics and health checking tool.
+    
+    Run comprehensive checks against Kubernetes resources to identify common
+    misconfigurations and faults. Supports live cluster inspection via kubectl
+    configuration.
+    
+    TARGET can be:
+        my-pod          # Check specific pod in current namespace
+        .               # Check current namespace + all resources
+        *               # Check current namespace + all resources  
+        production      # Check 'production' namespace
+        cluster         # Check entire cluster
+        all             # Check everything (cluster + deep scan)
+        
+    EXAMPLES:
+        # Smart defaults:
+        relcheck my-pod                    # Check pod in current namespace
+        relcheck .                         # Check current namespace
+        relcheck production                # Check namespace
+        relcheck cluster                   # Check cluster
+        relcheck all                       # Check everything
+        
+        # With options:
+        relcheck my-pod --verbose          # Show all checks
+        relcheck . --format json           # JSON output
+        relcheck cluster --deep            # Deep cluster scan
+        
+        # Traditional explicit commands:
+        relcheck check-resource --resource-kind Pod --name my-pod --namespace default
+    """
+    run_checks(target, format_, solve, verbose, deep, kubeconfig, k8s_context)
+
 # Keep the old command for backward compatibility
-@main.command()
+@click.group()
+def legacy():
+    """Legacy commands for backward compatibility"""
+    pass
+
+@legacy.command()
 @click.option("--resource-kind", 
               type=click.Choice(["Pod", "Namespace", "Cluster"], case_sensitive=False), 
               required=True,
