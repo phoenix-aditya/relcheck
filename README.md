@@ -1,63 +1,249 @@
 # relcheck
-A CLI tool to check diagnose reliability of kubernetes resources
 
+A comprehensive CLI tool for diagnosing reliability and health issues in Kubernetes clusters. relcheck performs automated health checks against live Kubernetes resources to identify common misconfigurations, faults, and potential issues before they cause problems.
 
-## Minikube setup
-`minikube dashboard`
-kubectl expose deployment myapp --type=NodePort --port=8080
-minikube service myapp
-`minikube stop`
+## Features
 
-### Initial Plan
-can u design the flow diagram for this service i planned
-Okay here is the full plan
-We will create this CLI tool called relcheck here
-It will diagnose problems with kubernetes resources
+- **Live Cluster Inspection**: Connects directly to Kubernetes clusters via kubectl configuration
+- **Comprehensive Resource Coverage**: Supports Pods, Deployments, Services, Namespaces, and more
+- **Extensible Check Framework**: Easy to add custom checks for specific resource types
+- **Smart Categorization**: Distinguishes between "misconfig" (yellow) and "fault" (red) issues
+- **Deep Resource Traversal**: Recursively check parent resources and all their children
+- **Multiple Output Formats**: Table view (default) or JSON for automation
+- **MCP Integration Ready**: Framework for AI-powered solution suggestions
 
-I want u to create a structure so that we can code,
-i want a base class called Resource which will have general information about the resource for example pod
-then this class will also load something called checks
-a check corresponds to a check of certain kind say for example checking for missing resource limits in a pod or checking for anything, i want u to create a base check class as well so that users can code their own checks
-Now when we run the Resource class wil load the checks and run it against the resource for example pod info stored in the Resource class object, 
-It should output something called a ReportInfo
-the ReportInfo is a list of information mainly contain the check that was performed, did it pass or fail, some information on why the check passed or failed and also contains an empty solution string u can say i dont want the solution populated right now as we will connect a MCP provide it the report and ask the MCP to provide solutions
-Now all the list of ReportInfo that come from various Resource classes which inside them perform checks and create the ReportInfo object will then be combined into a final Report class which can further be exported to json, table etc
+## Installation
 
-Now a few things, i want the checks to be seperated based on resource types example pod etc in kubernetes and i want them to follow the same Check base class
+### From PyPI (Recommended)
 
-Also in the Report Class i want an option to invoke MCP based solutioning so u can implement something seperately than can be invoked to call a MCP LLM Model and populate the solutions field of the report
+```bash
+pip install relcheck
+```
 
-in the MCP layer i also want that before we send the request we can provide additional context related to the Resource
+### From Source
 
-can u implement all this in a minimal fashion
+```bash
+# Clone the repository
+git clone <repository-url>
+cd relcheck
 
+# Install dependencies
+poetry install
 
-### Kubernetes Resources
+# Install the CLI tool
+poetry install
+```
+
+## Quick Start
+
+```bash
+# Check a specific pod
+relcheck check-resource --resource-kind Pod --name my-pod --namespace default
+
+# Check all resources in a namespace (deep scan)
+relcheck check-resource --resource-kind Namespace --name my-namespace --deep --verbose
+
+# Check entire cluster health
+relcheck check-resource --resource-kind Cluster --deep
+
+# Output as JSON for automation
+relcheck check-resource --resource-kind Pod --name my-pod --namespace default --format json
+```
+
+## Usage
+
+### Basic Commands
+
+```bash
+# Get help
+relcheck --help
+relcheck check-resource --help
+
+# Check a pod
+relcheck check-resource --resource-kind Pod --name my-pod --namespace default
+
+# Check a namespace with all its resources
+relcheck check-resource --resource-kind Namespace --name default --deep
+
+# Check cluster-wide resources
+relcheck check-resource --resource-kind Cluster --deep
+```
+
+### Command Options
+
+- `--resource-kind`: Type of resource (Pod, Namespace, Cluster)
+- `--namespace`: Namespace containing the resource
+- `--name`: Specific resource name
+- `--deep`: Recursively check child resources
+- `--verbose`: Show all checks (passed and failed)
+- `--format`: Output format (table or json)
+- `--kubeconfig`: Path to kubeconfig file
+- `--context`: Kubernetes context to use
+- `--solve`: Enable MCP-based solutions (experimental)
+
+## Resource Hierarchy
+
+relcheck understands Kubernetes resource relationships and can traverse them:
+
+```
 Cluster
- ├── Namespaces (default, kube-system, etc.)
- │    ├── Workloads
- │    │    ├── Pods
- │    │    ├── Deployments (manages ReplicaSets -> Pods)
- │    │    ├── StatefulSets (manages Pods with identity & PVCs)
- │    │    └── DaemonSets (ensures Pods on all Nodes)
- │    │
- │    ├── Networking
- │    │    ├── Services (target Pods via labels)
- │    │    ├── Ingress (routes external traffic → Services)
- │    │    └── NetworkPolicy (controls Pod traffic)
- │    │
- │    ├── Data
- │    │    ├── ConfigMaps (key-value data for Pods)
- │    │    ├── Secrets (sensitive data for Pods)
- │    │    └── PersistentVolumeClaims (PVCs → bind to PVs)
- │    │
- │    └── RBAC (Roles, RoleBindings scoped to this namespace)
- │
- ├── Nodes (where Pods actually run, scheduled by kube-scheduler)
- │    └── Each Node runs kubelet + container runtime
- │
- └── Cluster-scoped configs
-      ├── PersistentVolumes (PV) – available across namespaces
-      ├── ClusterRoles / ClusterRoleBindings
-      └── CRDs (define new resource types)
+├── Namespaces
+│   ├── Workloads (Pods, Deployments, StatefulSets, DaemonSets)
+│   ├── Networking (Services, Ingress, NetworkPolicies)
+│   ├── Data (ConfigMaps, Secrets, PVCs)
+│   └── RBAC (Roles, RoleBindings)
+├── Nodes
+└── Cluster-scoped resources (PVs, ClusterRoles, CRDs)
+```
+
+## Check Categories
+
+### Misconfig (Yellow)
+Issues that won't prevent resources from running but may cause problems:
+- Missing resource limits
+- Incorrect probe configurations
+- Suboptimal service types
+
+### Fault (Red)
+Critical issues that can cause resource failures:
+- CrashLoopBackOff states
+- Image pull failures
+- Resource scheduling issues
+- OOM kills
+
+## Examples
+
+### Check Pod Health
+```bash
+relcheck check-resource --resource-kind Pod --name web-app --namespace production
+```
+
+### Deep Namespace Scan
+```bash
+relcheck check-resource --resource-kind Namespace --name production --deep --verbose
+```
+
+### Cluster-wide Health Check
+```bash
+relcheck check-resource --resource-kind Cluster --deep
+```
+
+## Output Formats
+
+### Table (Default)
+Shows a formatted table with resource kind, namespace, name, check details, category, result, and details.
+
+### JSON
+Machine-readable output for automation and integration:
+```json
+[
+  {
+    "resource_kind": "Pod",
+    "namespace": "default",
+    "resource_name": "web-app",
+    "check_id": "pod_resource_limits",
+    "check_title": "Pod Resource Limits Check",
+    "category": "misconfig",
+    "passed": false,
+    "details": "Container 'web' missing memory limits",
+    "description": "Check if containers have resource limits defined",
+    "probable_cause": "Resource limits not specified in pod spec"
+  }
+]
+```
+
+## Extending relcheck
+
+### Adding Custom Checks
+
+Create new check classes in the appropriate resource directory:
+
+```python
+from relcheck.core.types import BaseCheck
+
+class MyCustomCheck(BaseCheck):
+    check_id = "my_custom_check"
+    check_title = "My Custom Check"
+    severity = "warning"
+    category = "misconfig"
+    target_kind = "Pod"
+    description = "Description of what this check does"
+    probable_cause = "Common cause of this issue"
+    
+    def check(self, resource, kube_context):
+        # Your check logic here
+        if issue_found:
+            return ReportInfo(
+                resource_kind=resource.kind,
+                namespace=resource.namespace,
+                resource_name=resource.name,
+                check_id=self.check_id,
+                check_title=self.check_title,
+                passed=False,
+                details="Issue description",
+                category=self.category,
+                description=self.description,
+                probable_cause=self.probable_cause
+            )
+        return ReportInfo(...)  # Pass case
+```
+
+### Adding New Resource Types
+
+Extend the Resource base class for new Kubernetes resource types:
+
+```python
+from relcheck.core.types import Resource
+
+class MyResource(Resource):
+    def run_checks(self, registry):
+        # Run checks specific to this resource type
+        pass
+    
+    def children(self):
+        # Return child resources if any
+        pass
+```
+
+## Requirements
+
+- Python 3.11+
+- Access to a Kubernetes cluster (minikube, kind, or production)
+- kubectl configured with cluster access
+
+## Development
+
+```bash
+# Clone and setup
+git clone <repository-url>
+cd relcheck
+
+# Install development dependencies
+poetry install
+
+# Run tests
+poetry run pytest
+
+# Format code
+poetry run black src/
+poetry run isort src/
+
+# Build package
+poetry build
+
+# Install locally for testing
+poetry install
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Add your changes
+4. Add tests for new functionality
+5. Submit a pull request
+
+## License
+
+[Add your license here]
 

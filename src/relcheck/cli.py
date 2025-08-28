@@ -16,22 +16,65 @@ from .checks.data.pvc import PvcStorageClassCheck
 from .checks.cluster.node import NodeReadyCheck
 
 @click.group()
+@click.version_option(version="0.1.1", prog_name="relcheck")
 def main():
-    """My CLI tool"""
+    """relcheck - Kubernetes resource diagnostics and health checking tool.
+    
+    Run comprehensive checks against Kubernetes resources to identify common
+    misconfigurations and faults. Supports live cluster inspection via kubectl
+    configuration.
+    """
     pass
 
 @main.command()
-@click.option("--resource-kind", type=click.Choice(["Pod", "Namespace", "Cluster"], case_sensitive=False), required=True)
-@click.option("--namespace", default=None)
-@click.option("--name", default=None)
-@click.option("--format", "format_", type=click.Choice(["table", "json"], case_sensitive=False), default="table")
-@click.option("--solve", is_flag=True, default=False, help="Populate solutions via MCP")
-@click.option("--verbose", is_flag=True, default=False, help="Show both passed and failed checks")
-@click.option("--deep", is_flag=True, default=False, help="Run checks on child resources as well")
-@click.option("--kubeconfig", default=None, help="Path to kubeconfig")
-@click.option("--context", "k8s_context", default=None, help="Kube context name")
+@click.option("--resource-kind", 
+              type=click.Choice(["Pod", "Namespace", "Cluster"], case_sensitive=False), 
+              required=True,
+              help="Type of Kubernetes resource to check")
+@click.option("--namespace", 
+              default=None,
+              help="Namespace containing the resource (required for Pod, optional for Namespace)")
+@click.option("--name", 
+              default=None,
+              help="Name of the specific resource to check")
+@click.option("--format", "format_", 
+              type=click.Choice(["table", "json"], case_sensitive=False), 
+              default="table",
+              help="Output format: table (default) or json")
+@click.option("--solve", 
+              is_flag=True, 
+              default=False, 
+              help="Enable MCP-based solution suggestions (experimental)")
+@click.option("--verbose", 
+              is_flag=True, 
+              default=False, 
+              help="Show all checks (passed and failed). Default: show only failed checks")
+@click.option("--deep", 
+              is_flag=True, 
+              default=False, 
+              help="Recursively check child resources (e.g., all pods in a namespace)")
+@click.option("--kubeconfig", 
+              default=None, 
+              help="Path to kubeconfig file (default: ~/.kube/config)")
+@click.option("--context", "k8s_context", 
+              default=None, 
+              help="Kubernetes context to use (default: current context)")
 def check_resource(resource_kind: str, namespace: Optional[str], name: Optional[str], format_: str, solve: bool, verbose: bool, deep: bool, kubeconfig: Optional[str], k8s_context: Optional[str]):
-    """Run checks against a resource provided via file or flags (minimal demo)."""
+    """Run comprehensive diagnostics on Kubernetes resources.
+    
+    EXAMPLES:
+        # Check a specific pod
+        relcheck check-resource --resource-kind Pod --name my-pod --namespace default
+        
+        # Check all resources in a namespace (deep scan)
+        relcheck check-resource --resource-kind Namespace --name my-namespace --deep --verbose
+        
+        # Check entire cluster health
+        relcheck check-resource --resource-kind Cluster --deep
+        
+        # Output as JSON for automation
+        relcheck check-resource --resource-kind Pod --name my-pod --namespace default --format json
+    """
     raw = {}
 
     registry = CheckRegistry()
