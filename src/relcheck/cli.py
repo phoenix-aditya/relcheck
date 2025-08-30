@@ -134,7 +134,7 @@ def run_checks(target: str, format_: str, solve: bool, verbose: bool, deep: bool
     click.echo(draw_border("-"))
 
 @click.command()
-@click.version_option(version="0.1.1", prog_name="relcheck")
+@click.version_option(version="0.1.3", prog_name="relcheck")
 @click.argument("target", default=".")
 @click.option("--format", "format_", 
               type=click.Choice(["table", "json"], case_sensitive=False), 
